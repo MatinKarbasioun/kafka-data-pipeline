@@ -1,8 +1,11 @@
 import asyncio
 from threading import Thread
+from typing import Type
 
 import confluent_kafka
 from confluent_kafka import KafkaException
+
+from src.kafka.ICallback import ICallback
 
 """
 Producer responsible to:
@@ -29,14 +32,16 @@ class AIOKafkaProducer:
         self._cancelled = True
         self._poll_thread.join()
 
-    def produce(self, topic, value):
+    def produce(self,
+                topic,
+                value: str|bytes|None = None,
+                keys:str|bytes|None=None,
+                partitions:int|None=None,
+                on_delivery: Type[ICallback] | None = None,
+                timestamps:int|None=None,
+                headers:dict|None=None):
         result = self._loop.create_future()
-        def ack(err, msg):
-            if err:
-                self._loop.call_soon_threadsafe(
-                    result.set_exception, KafkaException(err))
-            else:
-                self._loop.call_soon_threadsafe(
-                    result.set_result, msg)
+
+
         self._producer.produce(topic, value, on_delivery=ack)
         return result
