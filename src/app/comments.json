@@ -4,9 +4,9 @@
   },
   "messageBrokers": {
     "kafka": {
-      "servers": "localhost:9092",
       "topics": {
         "sampleTopic": "sample-topic",
+        "servers": "localhost:9092",
         "acks": 1,
         "_acks": "acks includes 0, 1, all (0 stands for fire and forget, 1 stands for save on disk but no guarantee for replication, the safest and default settings is all or negative 1 (-1) which guarantee for replication and data has been written to the lead broker and the all following replica or in-sync replica set",
         "_batch.size": "number of bytes that will be batched before sending produce request, required tradeoff between latency and increase throughput",
