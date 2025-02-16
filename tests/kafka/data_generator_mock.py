@@ -1,7 +1,7 @@
 import pytest
 from src.app.app_settings import AppSettings
 from src.kafka.producer.producer import KafkaProducer
-from test.kafka.testutils.callback import TestProducerCallBack
+from tests.kafka.testutils.callback import TestProducerCallBack
 
 
 @pytest.fixture(scope="module")
