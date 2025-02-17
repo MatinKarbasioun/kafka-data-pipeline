@@ -2,8 +2,8 @@ from src.kafka.producer.IKafkaProducerCallback import IKafkaProducerCallback
 
 
 class TestProducerCallBack(IKafkaProducerCallback):
-    def __init__(self, flag):
-        self.__flag = flag
+    def __init__(self):
+        self.__flag = False
 
     def on_receive(self, err, event):
 

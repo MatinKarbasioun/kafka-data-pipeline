@@ -11,10 +11,14 @@ Partitions are a key unit of scale in Kafka (the number of partitions is importa
 The isolation level is important, by set our isolation to read committed offset, a consumer will not read any events
 that are part of an open or boarded transaction.
 """
+import logging
+
 from confluent_kafka import Consumer, Message, KafkaException
 
-from src.kafka.consumer.assign import KafkaAssign, logger
+from src.kafka.consumer.partitioning import KafkaPartitioning
 from src.kafka.consumer.consumer_callback import IKafkaConsumerCallback
+
+logger = logging.getLogger(__name__)
 
 """
  1- group.id: (str) Uniquely identifies this application so that additional instances are included in a consumer group
@@ -40,11 +44,11 @@ class KafkaConsumer:
         self.__consumer = Consumer({"bootstrap.servers": bootstrap_servers,
                                    "group.id":group_id,
                                    "auto.offset.reset":auto_offset_reset,
-                                   "auto.commit":auto_commit,
+                                   "enable.auto.commit":auto_commit,
                                    "isolation.level":isolation_level})
 
-    def subscribe(self, callbacks: list[IKafkaConsumerCallback], on_assign=KafkaAssign.on_assign,
-                  on_revoke=None, on_lost=None):
+    def subscribe(self, callbacks: list[IKafkaConsumerCallback], on_assign=KafkaPartitioning.on_assign,
+                  on_revoke=KafkaPartitioning.on_revoke, on_lost=KafkaPartitioning.on_lost):
         [self.__add_subscriber(callback) for callback in callbacks]
         self.__consumer.subscribe(list(self.__assigned_callbacks.keys()),
                                   on_assign=on_assign,
