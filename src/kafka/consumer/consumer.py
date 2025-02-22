@@ -12,6 +12,7 @@ The isolation level is important, by set our isolation to read committed offset,
 that are part of an open or boarded transaction.
 """
 import logging
+import threading
 
 from confluent_kafka import Consumer, Message, KafkaException
 
@@ -34,33 +35,36 @@ logger = logging.getLogger(__name__)
  
 """
 
-class KafkaConsumer:
-    def __init__(self, bootstrap_servers: str,
-                 group_id: str,
-                 auto_offset_reset: str = 'latest',
-                 auto_commit: bool = False,
-                 isolation_level: str = 'read_committed'):
-        self.__assigned_callbacks = {}
+class KafkaConsumer(threading.Thread):
+    def __init__(self, bootstrap_servers: str, group_id: str, auto_offset_reset: str = 'latest',
+                 auto_commit: bool = False, isolation_level: str = 'read_committed'):
+        super().__init__()
+        self.assigned_callbacks = {}
         self.__consumer = Consumer({"bootstrap.servers": bootstrap_servers,
                                    "group.id":group_id,
                                    "auto.offset.reset":auto_offset_reset,
                                    "enable.auto.commit":auto_commit,
                                    "isolation.level":isolation_level})
 
+    def run(self):
+        self.consume()
+
     def subscribe(self, callbacks: list[IKafkaConsumerCallback], on_assign=KafkaPartitioning.on_assign,
                   on_revoke=KafkaPartitioning.on_revoke, on_lost=KafkaPartitioning.on_lost):
         [self.__add_subscriber(callback) for callback in callbacks]
-        self.__consumer.subscribe(list(self.__assigned_callbacks.keys()),
+        self.__consumer.subscribe(list(self.assigned_callbacks.keys()),
                                   on_assign=on_assign,
                                   on_revoke=on_revoke,
                                   on_lost=on_lost)
+        print(self.__consumer.list_topics())
+        print('setup')
 
     def __add_subscriber(self, callback: IKafkaConsumerCallback):
-        self.__assigned_callbacks.update({callback.topic: callback})
+        self.assigned_callbacks.update({callback.topic: callback})
 
     def __call_callbacks(self, event: Message):
         try:
-            self.__assigned_callbacks.get(event.topic()).on_receive(event)
+            self.assigned_callbacks.get(event.topic()).on_receive(event)
 
         except Exception as e:
             logger.error(f'There is an exception while processing callbacks in kafka consumer with {e} error')
@@ -79,3 +83,18 @@ class KafkaConsumer:
             else:
                 self.__call_callbacks(event)
                 self.__consumer.commit(event)
+
+    async def __run(self):
+        await self.__consumer.start()
+        print('consumer start')
+        try:
+            # Consume messages
+            async for msg in self.__consumer:
+                self.__callback(msg)
+
+        finally:
+            # Will leave consumer group; perform autocommit if enabled.
+            await self.__consumer.stop()
+
+    def close(self):
+        self.__consumer.close()

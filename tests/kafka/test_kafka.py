@@ -21,7 +21,8 @@ def create_producer():
 def create_consumer():
     AppSettings()
     consumer = KafkaConsumer(bootstrap_servers=AppSettings.CREDENTIALS["messageBrokers"]["kafka"]["servers"],
-                             group_id=AppSettings.APP_SETTINGS["messageBrokers"]["kafka"]["groupId"])
+                             group_id=AppSettings.APP_SETTINGS["messageBrokers"]["kafka"]["groupId"],
+                             auto_offset_reset='earliest')
     return consumer
 
 def test_produce_data_should_return_true_result(create_producer: KafkaProducer, topic: str):
@@ -35,10 +36,10 @@ def test_produce_data_should_return_true_result(create_producer: KafkaProducer, 
 
 def test_consume_data_should_return_true_flag_when_received_event(create_consumer: KafkaConsumer, topic: str):
     callback = TestConsumerCallBack(topic)
-
+    print('start test')
     consumer = create_consumer
     consumer.subscribe([callback])
     consumer.consume()
+    consumer.close()
 
     assert callback.flag == True
-
