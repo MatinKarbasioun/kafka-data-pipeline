@@ -1,6 +1,6 @@
 from confluent_kafka import Message
 
-from src.kafka.consumer.consumer_callback import IKafkaConsumerCallback
+from src.application.kafka.consumer import IKafkaConsumerCallback
 
 
 class TestConsumerCallBack(IKafkaConsumerCallback):

@@ -1,12 +1,10 @@
-import asyncio
 import logging
 from threading import Thread
 from typing import TypeVar
 
 import confluent_kafka
-from confluent_kafka import KafkaException
 
-from src.kafka.producer.IKafkaProducerCallback import IKafkaProducerCallback
+from src.application.kafka.producer.IKafkaProducerCallback import IKafkaProducerCallback
 
 """
 Producer responsible to:

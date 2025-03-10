@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from src.kafka.producer import AIOKafkaProducer
+from src.application.kafka.producer import AIOKafkaProducer
 
 
 @asynccontextmanager

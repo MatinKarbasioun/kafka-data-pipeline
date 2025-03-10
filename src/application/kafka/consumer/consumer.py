@@ -11,13 +11,15 @@ Partitions are a key unit of scale in Kafka (the number of partitions is importa
 The isolation level is important, by set our isolation to read committed offset, a consumer will not read any events
 that are part of an open or boarded transaction.
 """
+import asyncio
 import logging
 import threading
+from typing import Type
 
 from confluent_kafka import Consumer, Message, KafkaException
 
-from src.kafka.consumer.partitioning import KafkaPartitioning
-from src.kafka.consumer.consumer_callback import IKafkaConsumerCallback
+from src.application.kafka.consumer.partitioning import KafkaPartitioning
+from src.application.kafka.consumer.consumer_callback import IKafkaConsumerCallback
 
 logger = logging.getLogger(__name__)
 
@@ -37,42 +39,60 @@ logger = logging.getLogger(__name__)
 
 class KafkaConsumer(threading.Thread):
     def __init__(self, bootstrap_servers: str, group_id: str, auto_offset_reset: str = 'latest',
-                 auto_commit: bool = False, isolation_level: str = 'read_committed'):
+                 auto_commit: bool = False, isolation_level: str = 'read_committed',
+                 cancellation_token: bool = False,
+                 consumer: Type[Consumer] = Consumer):
         super().__init__()
+        self.__running = False
         self.assigned_callbacks = {}
-        self.__consumer = Consumer({"bootstrap.servers": bootstrap_servers,
+        self.__cancellation_token = cancellation_token
+        self.consumer = consumer({"bootstrap.servers": bootstrap_servers,
                                    "group.id":group_id,
                                    "auto.offset.reset":auto_offset_reset,
                                    "enable.auto.commit":auto_commit,
                                    "isolation.level":isolation_level})
+        self.loop = asyncio.get_event_loop()
+
+    def __start(self):
+        self.__running = True
+        logger.info("Kafka consumer started")
+        self.consume()
 
     def run(self):
-        self.consume()
+        asyncio.set_event_loop(self.loop)
+        self.loop.run_until_complete(self.__run())
+        self.loop.run_forever()
 
     def subscribe(self, callbacks: list[IKafkaConsumerCallback], on_assign=KafkaPartitioning.on_assign,
                   on_revoke=KafkaPartitioning.on_revoke, on_lost=KafkaPartitioning.on_lost):
         [self.__add_subscriber(callback) for callback in callbacks]
-        self.__consumer.subscribe(list(self.assigned_callbacks.keys()),
-                                  on_assign=on_assign,
-                                  on_revoke=on_revoke,
-                                  on_lost=on_lost)
-        print(self.__consumer.list_topics())
+        self.consumer.subscribe(list(self.assigned_callbacks.keys()),
+                                on_assign=on_assign,
+                                on_revoke=on_revoke,
+                                on_lost=on_lost)
+        print(self.consumer.list_topics())
         print('setup')
 
     def __add_subscriber(self, callback: IKafkaConsumerCallback):
         self.assigned_callbacks.update({callback.topic: callback})
+        print(f'subscribe on {callback.topic}')
 
     def __call_callbacks(self, event: Message):
         try:
-            self.assigned_callbacks.get(event.topic()).on_receive(event)
+            callback = self.assigned_callbacks.get(event.topic())
+            if callback:
+                callback.on_receive(event)
+
+            else:
+                logger.warning(f"No callback found for topic {event.topic()}")
 
         except Exception as e:
             logger.error(f'There is an exception while processing callbacks in kafka consumer with {e} error')
 
     def consume(self):
-        while True:
-            event = self.__consumer.poll(timeout=0.01)
-
+        while self.__running and not self.__cancellation_token:
+            event = self.consumer.poll(timeout=0.01)
+            print(event)
             if event is None:
                 continue
 
@@ -82,19 +102,12 @@ class KafkaConsumer(threading.Thread):
 
             else:
                 self.__call_callbacks(event)
-                self.__consumer.commit(event)
+                self.consumer.commit(event)
 
     async def __run(self):
-        await self.__consumer.start()
-        print('consumer start')
-        try:
-            # Consume messages
-            async for msg in self.__consumer:
-                self.__callback(msg)
+        await asyncio.to_thread(self.__start)
 
-        finally:
-            # Will leave consumer group; perform autocommit if enabled.
-            await self.__consumer.stop()
-
-    def close(self):
-        self.__consumer.close()
+    def stop(self):
+        self.__running = False
+        self.consumer.close()
+        logger.info("Kafka consumer stopped")

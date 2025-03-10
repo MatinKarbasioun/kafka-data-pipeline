@@ -3,7 +3,7 @@ import logging
 
 from confluent_kafka import KafkaException
 
-from src.kafka.producer.IKafkaProducerCallback import IKafkaProducerCallback
+from src.application.kafka.producer.IKafkaProducerCallback import IKafkaProducerCallback
 
 logger = logging.getLogger(__name__)
 
