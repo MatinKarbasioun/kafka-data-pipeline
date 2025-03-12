@@ -1,0 +1,2 @@
+from confluent_kafka.schema_registry.json_schema import JSONSerializer
+
