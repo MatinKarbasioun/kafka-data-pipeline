@@ -1,58 +1,61 @@
 import asyncio
 import json
 from typing import Optional
-
-import websockets
-from websockets import connect
+from websockets import connect, ClientConnection, ConnectionClosed
 import logging
 
-from src.application.kafka.consumer.consumer import logger
+from src.application.websocket.handler import IWebSocketHandler
 
-logger = logger.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
+"""
+Parameters:
+open_timeout (float | None) – Timeout for opening the connection in seconds. None disables the timeout.
+
+ping_interval (float | None) – Interval between keepalive pings in seconds. None disables keepalive.
+
+ping_timeout (float | None) – Timeout for keepalive pings in seconds. None disables timeouts.
+
+close_timeout (float | None) – Timeout for closing the connection in seconds. None disables the timeout.
+"""
 
 class WebsocketClient:
-    def __inti__(self, ping_time: int, ping_interval: int):
-        self.__max_retries = 5
-        self.__retry_delay = 0.1
-        self.__ping_timeout = ping_time
-        self.__ping_interval = ping_interval
+    def __init__(self, ping_time: int, ping_interval: int):
+        self.__ping_timeout = ping_time # 600
+        self.__ping_interval = ping_interval # 180
         self.__connected = True
-        self.websocket: Optional[websockets.ClientConnection] = None
+        self.websocket: Optional[ClientConnection] = None
+        self.__ws_handler: IWebSocketHandler = None
 
+    async def add_handler(self, ws_handler: IWebSocketHandler):
+        self.__ws_handler = ws_handler
 
     async def connect(self, url: str):
+        async for websocket in connect(url, ping_timeout=self.__ping_timeout, ping_interval=self.__ping_interval):
+            try:
+                if self.__connected:
+                    await self.__listen(websocket)
 
-        retry_attempts = 0
+                else:
+                    break
 
-        while retry_attempts < self.__max_retries and self.__connected:
-            async for websocket in connect(url, ping_timeout=600, ping_interval=180):
-                try:
-                    await consumer_handler(websocket)
-                except websockets.exceptions.ConnectionClosed:
-                    continue
-            await asyncio.sleep(self.__retry_delay)
+            except ConnectionClosed:
+                continue
 
-    async def listen(self, ws):
+    async def __listen(self, ws):
         try:
-            async for message in self.websocket:
+            async for message in ws:
                 data = json.loads(message)
-                await self.handle_message(data)
-        except websockets.ConnectionClosed:
-            logger.warning("WebSocket connection lost. Reconnecting...")
-            await self.connect()
+                await self.consumer_handler(data)
 
-async def consumer_handler(websocket):
-    async for message in websocket:
-        print(message)
+        except Exception as e:
+            logger.error('ws client raised error', exc_info=e)
 
-async def ws_connect(url):
-    async for websocket in connect(url, ping_timeout=600, ping_interval=180):
-        try:
-            await consumer_handler(websocket)
-        except websockets.exceptions.ConnectionClosed:
-            continue
+    async def consumer_handler(self, msg: dict):
+        self.__ws_handler.on_receive(msg)
+
 
 
 if __name__ == '__main__':
-    asyncio.run(ws_connect("wss://fstream.binance.com/ws/bnbusdt@aggTrade"))
+    ws = WebsocketClient(ping_time=600, ping_interval=180)
+    asyncio.run(ws.connect("wss://fstream.binance.com/stream?streams=bnbusdt@aggTrade/btcusdt@markPrice"))
