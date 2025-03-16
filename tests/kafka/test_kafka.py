@@ -3,8 +3,8 @@ import uuid
 
 import pytest
 from src.app.app_settings import AppSettings
-from src.application.kafka.consumer.consumer import KafkaConsumer
-from src.application.kafka.producer.producer import KafkaProducer
+from src.infrastructure.broker.kafka.consumer import KafkaConsumer
+from src.infrastructure.broker.kafka.producer import KafkaProducer
 from tests.kafka.test_utils.consumer_callback import TestConsumerCallBack
 from tests.kafka.test_utils.producer_callback import TestProducerCallBack
 

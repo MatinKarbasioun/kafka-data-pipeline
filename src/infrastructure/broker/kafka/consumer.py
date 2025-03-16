@@ -18,7 +18,7 @@ from typing import Type
 
 from confluent_kafka import Consumer, Message, KafkaException
 
-from src.application.kafka.consumer.partitioning import KafkaPartitioning
+from src.infrastructure.broker.kafka.partitioning import KafkaPartitioning
 from src.application.kafka.consumer.consumer_callback import IKafkaConsumerCallback
 
 logger = logging.getLogger(__name__)
