@@ -1,6 +1,6 @@
 import asyncio
 
-from websockets.asyncio.server import serve
+from websockets.asyncio.server import serve, ServerConnection
 
 
 class WebSocketServer:
@@ -13,9 +13,9 @@ class WebSocketServer:
     def add_handler(self, handler):
         self.__handler = handler
 
-    async def __listen(self, websocket):
-        self.__handler.on_
-
+    async def __listen(self, websocket: ServerConnection):
+        print(websocket)
+        await websocket.send('hello from websocket')
 
     async def start(self):
         # set this future to exit the server

@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import NamedTuple
 
-from .interval import Interval
+from src.domain.value_objects.interval import Interval
 
 
 class CandleStickEntity(NamedTuple):

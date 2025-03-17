@@ -1,5 +1,4 @@
 from sqlalchemy import Column, BIGINT, Numeric, String, TIMESTAMP
-
 from src.infrastructure.db_management.base_model import Base
 
 

@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
 
+from websockets import ServerConnection
+
 
 class IWebSocketHandler(ABC):
 
     @abstractmethod
-    def on_receive(self, message):
+    def on_connection(self, websocket: ServerConnection):
         raise NotImplementedError
