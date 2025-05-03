@@ -1,16 +1,14 @@
 from typing import Callable, Any
 
 from src.application.kafka.schema.schema_reg import SchemaRegClient
-from confluent_kafka.schema_registry.json_schema import JSONSerializer, SerializationContext
-from confluent_kafka.serialization import StringSerializer, MessageField
+from confluent_kafka.schema_registry.json_schema import JSONDeserializer, SerializationContext
+from confluent_kafka.serialization import MessageField, StringDeserializer
+from confluent_kafka import Message
 
 
 class JsonSerializer:
-    def __init__(self, schema_reg_client: SchemaRegClient, schema_str, to_dict_fun: Callable):
-        self.__serializer = JSONSerializer(schema_str,
-                                                  schema_reg_client.schema_registry,
-                                                  to_dict=to_dict_fun)
-        self.__key_serializer = StringSerializer()
+    def __init__(self, schema_str, from_dict_func: Callable):
+        self.__deserializer = JSONDeserializer(schema_str, from_dict=from_dict_func)
 
-    def __call__(self, topic, key, obj: Any):
-        return self.__key_serializer(key), self.__serializer(obj, SerializationContext(topic, MessageField.VALUE))
+    def __call__(self, event: Message):
+        return self.__deserializer(event.value(None), SerializationContext(event.topic(), MessageField.VALUE))
