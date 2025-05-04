@@ -27,5 +27,5 @@ class SchemaRegClient:
         })
 
     @property
-    def schema_registry(self):
+    def schema_registry(self) -> SchemaRegistryClient:
         return self.__sc

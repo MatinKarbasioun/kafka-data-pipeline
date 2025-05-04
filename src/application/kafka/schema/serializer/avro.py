@@ -2,8 +2,7 @@ from typing import Callable, Any
 
 from src.application.kafka.schema.schema_reg import SchemaRegClient
 from confluent_kafka.schema_registry.avro import AvroSerializer as _avroSerializer
-from confluent_kafka.schema_registry.avro import SerializationContext
-from confluent_kafka.serialization import StringSerializer, MessageField
+from confluent_kafka.serialization import StringSerializer, MessageField, SerializationContext
 
 
 class AvroSerializer:

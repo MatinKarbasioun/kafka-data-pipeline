@@ -1,8 +1,8 @@
 from typing import Callable, Any
 
 from src.application.kafka.schema.schema_reg import SchemaRegClient
-from confluent_kafka.schema_registry.protobuf import ProtobufSerializer, SerializationContext
-from confluent_kafka.serialization import StringSerializer, MessageField
+from confluent_kafka.schema_registry.protobuf import ProtobufSerializer
+from confluent_kafka.serialization import StringSerializer, MessageField, SerializationContext
 
 
 class ProtoSerializer:
